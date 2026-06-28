@@ -103,3 +103,38 @@ def test_delete_204_returns_none(monkeypatch):
     monkeypatch.setattr(client_mod.httpx, "request", _fake_request(response=resp))
     c = PatchClient(token=make_token(time.time() + 3600))
     assert c.delete("/user/tokens/abc") is None
+
+
+def _capture_headers(monkeypatch):
+    """Patch httpx.request to record the headers of the last call."""
+    captured = {}
+
+    def _req(method, url, **kwargs):
+        captured["headers"] = kwargs.get("headers", {})
+        return httpx.Response(200, json={})
+
+    monkeypatch.setattr(client_mod.httpx, "request", _req)
+    return captured
+
+
+def test_requests_send_identifying_headers(monkeypatch):
+    captured = _capture_headers(monkeypatch)
+    PatchClient(token=make_token(time.time() + 3600)).get("/user/me")
+    headers = captured["headers"]
+    assert headers["X-Patch-Client"] == "patch-usage-mcp"
+    assert headers["User-Agent"].startswith("patch-usage-mcp/")
+    assert headers["Authorization"].startswith("Bearer ")
+
+
+def test_custom_client_id_is_used(monkeypatch):
+    captured = _capture_headers(monkeypatch)
+    PatchClient(token=make_token(time.time() + 3600), client_id="adam-laptop").get("/x")
+    assert captured["headers"]["X-Patch-Client"] == "adam-laptop"
+
+
+def test_empty_client_id_omits_custom_header(monkeypatch):
+    captured = _capture_headers(monkeypatch)
+    PatchClient(token=make_token(time.time() + 3600), client_id="").get("/x")
+    assert "X-Patch-Client" not in captured["headers"]
+    # User-Agent still identifies the client even with the custom header off.
+    assert captured["headers"]["User-Agent"].startswith("patch-usage-mcp/")

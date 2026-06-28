@@ -19,7 +19,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from . import analytics
-from .client import DEFAULT_BASE_URL, PatchClient
+from .client import DEFAULT_BASE_URL, DEFAULT_CLIENT_ID, PatchClient
 
 mcp = FastMCP("patch-usage")
 
@@ -33,6 +33,7 @@ def _client() -> PatchClient:
     return PatchClient(
         token=os.environ.get("PATCH_TOKEN", ""),
         base_url=os.environ.get("PATCH_BASE_URL", DEFAULT_BASE_URL),
+        client_id=os.environ.get("PATCH_CLIENT_ID", DEFAULT_CLIENT_ID),
     )
 
 

@@ -147,7 +147,11 @@ cd patch-usage-mcp
 uv run patch-usage-mcp
 ```
 
-Configuration is via environment variables: `PATCH_TOKEN` (required) and `PATCH_BASE_URL` (optional, defaults to `https://oai.joinpatch.org/api`).
+Configuration is via environment variables:
+
+- `PATCH_TOKEN` (required): your Patch session JWT.
+- `PATCH_BASE_URL` (optional): defaults to `https://oai.joinpatch.org/api`.
+- `PATCH_CLIENT_ID` (optional): value of the `X-Patch-Client` header sent on every request, so Patch can tell MCP traffic apart from human browser traffic in its logs. Defaults to `patch-usage-mcp`. Set a custom value (for example a machine name) to tag your own requests, or set it empty to drop the header. The request `User-Agent` is always `patch-usage-mcp/<version>` either way.
 
 If you prefer to register the server by hand, add this to your MCP config instead of using `claude mcp add`:
 

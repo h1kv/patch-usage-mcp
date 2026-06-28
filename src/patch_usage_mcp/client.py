@@ -15,8 +15,17 @@ from typing import Any
 
 import httpx
 
+from . import __version__
+
 DEFAULT_BASE_URL = "https://oai.joinpatch.org/api"
 TIMEOUT_SECONDS = 25.0  # mirrors the dashboard's own client timeout
+
+# Identifies MCP-originated requests so the API's logs can separate them from
+# human (browser/dashboard) traffic. The X-Patch-Client value is configurable
+# via PATCH_CLIENT_ID (set it empty to drop the custom header entirely).
+CLIENT_NAME = "patch-usage-mcp"
+CLIENT_HEADER = "X-Patch-Client"
+DEFAULT_CLIENT_ID = CLIENT_NAME
 
 # Shown whenever the token is missing/expired/rejected, so the user always
 # knows exactly how to recover.
@@ -25,6 +34,18 @@ REAUTH_HINT = (
     "DevTools (F12) -> Console, run  localStorage.getItem('patch_token')  and "
     "set the PATCH_TOKEN env var in your MCP config to that value."
 )
+
+
+def _client_headers(client_id: str) -> dict[str, str]:
+    """Build the identifying headers sent on every request.
+
+    Always sets a descriptive User-Agent; adds the X-Patch-Client header unless
+    client_id is empty (the opt-out).
+    """
+    headers = {"User-Agent": f"{CLIENT_NAME}/{__version__}"}
+    if client_id:
+        headers[CLIENT_HEADER] = client_id
+    return headers
 
 
 class PatchError(RuntimeError):
@@ -46,11 +67,17 @@ def decode_exp(token: str) -> float | None:
 class PatchClient:
     """Thin authenticated GET client for the Patch API."""
 
-    def __init__(self, token: str, base_url: str = DEFAULT_BASE_URL) -> None:
+    def __init__(
+        self,
+        token: str,
+        base_url: str = DEFAULT_BASE_URL,
+        client_id: str = DEFAULT_CLIENT_ID,
+    ) -> None:
         if not token:
             raise PatchError("PATCH_TOKEN is not set. " + REAUTH_HINT)
         self._token = token
         self._base_url = base_url.rstrip("/")
+        self._id_headers = _client_headers(client_id)
 
     def _check_not_expired(self) -> None:
         exp = decode_exp(self._token)
@@ -72,7 +99,7 @@ class PatchClient:
     def _request(self, method: str, path: str, json: Any | None = None) -> Any:
         self._check_not_expired()
         url = f"{self._base_url}{path}"
-        headers = {"Authorization": f"Bearer {self._token}"}
+        headers = {"Authorization": f"Bearer {self._token}", **self._id_headers}
         try:
             resp = httpx.request(
                 method, url, headers=headers, json=json, timeout=TIMEOUT_SECONDS
