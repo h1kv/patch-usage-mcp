@@ -55,8 +55,10 @@ Keep that copied. You need it in the next step.
 In PowerShell, paste the command below, but **replace `PASTE_YOUR_TOKEN_HERE`** with the token you just copied:
 
 ```powershell
-claude mcp add patch-usage --scope user --env PATCH_TOKEN=PASTE_YOUR_TOKEN_HERE -- uv run --directory "C:/Users/heliosfr/Documents/workspaces/v2/mcp-patch" patch-usage-mcp
+claude mcp add patch-usage --scope user --env PATCH_TOKEN=PASTE_YOUR_TOKEN_HERE -- uvx --from git+https://github.com/h1kv/patch-usage-mcp patch-usage-mcp
 ```
+
+`uvx` downloads and runs the server straight from GitHub, so there is nothing to clone and no folder to keep track of. Because this repository is private, your machine needs to be signed in to GitHub first (if `git clone https://github.com/h1kv/patch-usage-mcp` works for you, so will this).
 
 That is it. **Restart Claude** (close it and open it again) and just ask: *"How much of my Patch budget have I used?"*
 
@@ -137,6 +139,14 @@ uv sync --extra dev
 uv run pytest
 ```
 
+To run your local working copy instead of the published GitHub version, clone the repo and point `uv` at the folder:
+
+```bash
+git clone https://github.com/h1kv/patch-usage-mcp
+cd patch-usage-mcp
+uv run patch-usage-mcp
+```
+
 Configuration is via environment variables: `PATCH_TOKEN` (required) and `PATCH_BASE_URL` (optional, defaults to `https://oai.joinpatch.org/api`).
 
 If you prefer to register the server by hand, add this to your MCP config instead of using `claude mcp add`:
@@ -145,8 +155,8 @@ If you prefer to register the server by hand, add this to your MCP config instea
 {
   "mcpServers": {
     "patch-usage": {
-      "command": "uv",
-      "args": ["run", "--directory", "C:/Users/heliosfr/Documents/workspaces/v2/mcp-patch", "patch-usage-mcp"],
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/h1kv/patch-usage-mcp", "patch-usage-mcp"],
       "env": { "PATCH_TOKEN": "eyJhbGci...yourtoken..." }
     }
   }
